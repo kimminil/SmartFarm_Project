@@ -1,6 +1,6 @@
 from flask import Flask
 from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS
-from models import db,record_control_condition,record_access,record_data,record_product_condition
+import models as md
 from routes import bp as routes_bp
 from collections import deque
 
@@ -11,7 +11,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = SQLALCHEMY_TRACK_MODIFICATIONS
 
-db.init_app(app)
+md.db.init_app(app)
 app.register_blueprint(routes_bp)
 
 @app.route('/')

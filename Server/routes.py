@@ -1,12 +1,51 @@
 from flask import Blueprint, request, jsonify
-from models import db, testData
+import models as md
 
 bp = Blueprint('routes', __name__)
 
 @bp.route('/init-db')
 def init_db():
-    db.create_all()
+    md.db.create_all()
     return "✅ DB 초기화 완료"
+
+@bp.route('/record_data/insert',methods=['POST'])
+def data_insert():
+    data = request.json
+    entry = md.record_data(
+        log_time = data['log_time'],
+        temp = data['temp'],
+        humi = data['humi'],
+        co2 = data['co2'],
+        light = data['light'],
+        w_height = data['w_height']
+        
+    )
+    md.db.session.add(entry)
+    md.db.session.commit();
+    return jsonify({'message': '센서 저장 성공'})
+
+@bp.route('/record_access/insert',methods=['POST'])
+def access_insert():
+    data = request.json
+    entry = md.record_access(
+        access_time = data['access_time']
+        )
+    md.db.sesssion.add(entry)
+    md.db.session.commit();
+    return jsonify({'message': '로그 저장 성공'})
+@bp.route('/position/insert',methods=['POST'])
+def posi_insert():
+    data = request.json
+    entry = md.record_access(
+        product_posi = data['product_posi'],
+        status = data['status']
+        )
+    md.db.sesssion.add(entry)
+    md.db.session.commit();
+    return jsonify({'message': '위치 저장 성공'})
+'''
+
+
 
 @bp.route('/insert', methods=['POST'])
 def insert_data():
@@ -49,3 +88,4 @@ def delete_data(data_id):
         db.session.commit()
         return jsonify({'message': '삭제 완료'})
     return jsonify({'message': '데이터 없음'}), 404
+'''

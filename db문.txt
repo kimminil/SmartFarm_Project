@@ -1,6 +1,15 @@
-GRANT ALL PRIVILEGES ON test_table.* TO 'flaskuser'@'localhost';
+-- 데이터베이스 생성 (이미 있다면 생략)
+CREATE DATABASE test_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 사용자 생성 (이미 있다면 생략)
+CREATE USER 'flaskuser'@'localhost' IDENTIFIED BY '비밀번호';
+
+-- 권한 부여 (데이터베이스 전체에)
+GRANT ALL PRIVILEGES ON test_db.* TO 'flaskuser'@'localhost';
+
 FLUSH PRIVILEGES;
 
+---------------------------------------------
 SQLAlchemy ORM 주요 쿼리 구문 정리
 
 1. 기본 조회

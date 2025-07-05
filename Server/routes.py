@@ -1,12 +1,24 @@
 from flask import Blueprint, request, jsonify
 import models as md
+import random
 
 bp = Blueprint('routes', __name__)
 
+#테스트용 코드 구분
+@bp.route('/test/insert')
+def test_insert():
+    for i in range(1,100):
+        data = md.testData(temp=random.randint(20, 40))
+        md.db.session.add(data)
+    md.db.session.commit();
+    return jsonify({'message': '테스트 저장 성공'})
+#테스트용 코드 구분
 @bp.route('/init-db')
 def init_db():
     md.db.create_all()
     return "✅ DB 초기화 완료"
+
+
 
 @bp.route('/record_data/insert',methods=['POST'])
 def data_insert():

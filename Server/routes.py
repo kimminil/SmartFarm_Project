@@ -1,8 +1,43 @@
 from flask import Blueprint, request, jsonify
 import models as md
 import random
-
+import numpy as np
+import joblib
+from sklearn.preprocessing import MinMaxScaler
+import tensorflow as tf
 bp = Blueprint('routes', __name__)
+
+@bp.route('/test/predict',methods=['POST'])
+def pred():
+    model = tf.keras.models.load_model('Temperature.h5')
+
+    rows = (
+        md.testData.query
+        .with_entities(md.testData.temp,md.testData.id)
+        .order_by(md.testData.id.desc())
+        .limit(10)
+        .all()
+    )
+    temps = [t for t,_ in rows]
+    
+    scaler = joblib.load('scaler.pkl') 
+    temps = np.array(temps).reshape(-1, 1)
+    temp_scaled = scaler.transform(temps) 
+
+    # 6. LSTM 입력 형태 맞추기
+    X_input = temp_scaled.reshape(1, 10, 1)
+
+    # 7. 예측
+    y_pred_scaled = model.predict(X_input)
+
+    # 8. 역변환
+    y_pred = scaler.inverse_transform(y_pred_scaled)
+    print(f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃")
+    return jsonify({
+        "temp" : f"현재 저장된 10개의 온도 값: {temps}",
+        "predict": f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃"
+        })
+
 
 #테스트용 코드 구분
 @bp.route('/test/insert')

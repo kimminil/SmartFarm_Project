@@ -1,6 +1,6 @@
 from flask import Flask
 from config import SQLALCHEMY_DATABASE_URI, SQLALCHEMY_TRACK_MODIFICATIONS
-from models import db,testData
+from models import db,record_control_condition,record_access,record_data,record_product_condition
 from routes import bp as routes_bp
 from collections import deque
 
@@ -16,6 +16,7 @@ app.register_blueprint(routes_bp)
 
 @app.route('/')
 def home():
+    '''
     rows = (
         testData.query
         .with_entities(testData.email,testData.id)
@@ -31,6 +32,8 @@ def home():
         result += str(r)
         result += " "
     return result
+'''
+    return "test"
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

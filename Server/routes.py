@@ -9,7 +9,7 @@ bp = Blueprint('routes', __name__)
 
 @bp.route('/test/predict',methods=['POST'])
 def pred():
-    model = tf.keras.models.load_model('Temperature.h5')
+    model = tf.keras.models.load_model('./training/Temperature.h5')
 
     rows = (
         md.testData.query
@@ -20,7 +20,7 @@ def pred():
     )
     temps = [t for t,_ in rows]
     
-    scaler = joblib.load('scaler.pkl') 
+    scaler = joblib.load('./training/Temperature.pkl') 
     temps = np.array(temps).reshape(-1, 1)
     temp_scaled = scaler.transform(temps) 
 

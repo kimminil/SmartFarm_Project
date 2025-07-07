@@ -11,8 +11,8 @@ import joblib
 
 
 # 데이터 불러오기
-df_train = pd.read_csv('DataTraining.csv')
-df_test = pd.read_csv('DataTest.csv')
+df_train = pd.read_csv('./training/DataTraining.csv')
+df_test = pd.read_csv('./training/DataTest.csv')
 
 # 날짜 기준 파싱
 df_train['date'] = pd.to_datetime(df_train['date'], dayfirst=True)
@@ -23,8 +23,8 @@ df_train.set_index('date', inplace=True)
 df_test.set_index('date', inplace=True)
 
 # 온도 데이터만 추출
-train_temp = df_train['Temperature']
-test_temp = df_test['Temperature']
+train_temp = df_train['Humidity']
+test_temp = df_test['Humidity']
 
 # numpy 배열로 변환 및 reshape (samples, 1)
 train_values = train_temp.values.reshape(-1,1)
@@ -73,8 +73,8 @@ model.compile(optimizer='adam', loss='mse',metrics=['mae'])
 early_stop = EarlyStopping(monitor='val_loss', patience=10)
 history = model.fit(X_train_final, y_train_final, validation_data=(X_val, y_val),
                     epochs=100, batch_size=32, callbacks=[early_stop])
-model.save('Temperature.h5')
-joblib.dump(scaler, 'scaler.pkl')
+model.save('./training/Humidity.h5')
+joblib.dump(scaler, './training/Humidity.pkl')
 # 테스트 데이터 예측
 test_loss, test_mae = model.evaluate(X_test, y_test)
 print(f"Test Loss (MSE): {test_loss:.4f}")

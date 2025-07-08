@@ -7,6 +7,9 @@ class testData(db.Model):
     
     id = db.Column(db.Integer,primary_key=True,index=True)
     temp = db.Column(db.Float,index=True)
+    humi = db.Column(db.Float,index=True)
+    co2 = db.Column(db.Float,index=True)
+    light = db.Column(db.Float,index=True)
 
 class record_control_condition(db.Model):
     __tablename__ = 'record_control_condition'
@@ -43,5 +46,11 @@ class record_data(db.Model):
 
 class record_product_condition(db.Model):
     __tablename__='record_product_condition'
-    product_posi = db.Column(db.VARCHAR(10),primary_key=True,index=True)
+    no = db.Column(db.Integer,primary_key=True,index=True)
+    pos1 = db.Column(db.VARCHAR(10),index=True)
+    pos2 = db.Column(db.VARCHAR(10),index=True)
+    pos3 = db.Column(db.VARCHAR(10),index=True)
+    pos4 = db.Column(db.VARCHAR(10),index=True)
+    pos5 = db.Column(db.VARCHAR(10),index=True)
+    pos6 = db.Column(db.VARCHAR(10),index=True)
     status = db.Column(db.VARCHAR(10),index=True)

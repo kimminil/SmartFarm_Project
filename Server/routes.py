@@ -6,10 +6,31 @@ import joblib
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 bp = Blueprint('routes', __name__)
+try:
+    temp_model = tf.keras.models.load_model('./training/Temperature.h5')
+    temp_scaler = joblib.load('./training/Temperature.pkl')
+    humi_model = tf.keras.models.load_model('./training/humidity.h5')
+    humi_scaler = joblib.load('./training/humidity.pkl')
+    co2_model = tf.keras.models.load_model('./training/CO2.h5')
+    co2_scaler = joblib.load('./training/CO2.pkl')
+    light_model = tf.keras.models.load_model('./training/Light.h5')
+    light_scaler = joblib.load('./training/Light.pkl')
+except Exception as e:
+    print("모델 또는 스케일러 로드 실패:", e)
+    temp_model = None
+    temp_scaler = None
+    humi_model = None
+    humi_scaler = None
+    co2_model = None
+    co2_scaler = None
+    light_model = None
+    light_scaler = None
+    
 
-@bp.route('/test/predict',methods=['POST'])
-def pred():
-    model = tf.keras.models.load_model('./training/Temperature.h5')
+@bp.route('/test/predict/temp',methods=['POST'])
+def pred_temp():
+    if temp_model is None or temp_scaler is None:
+       return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
 
     rows = (
         md.testData.query
@@ -20,22 +41,122 @@ def pred():
     )
     temps = [t for t,_ in rows]
     
-    scaler = joblib.load('./training/Temperature.pkl') 
+    
     temps = np.array(temps).reshape(-1, 1)
-    temp_scaled = scaler.transform(temps) 
+    temp_scaled = temp_scaler.transform(temps) 
 
     # 6. LSTM 입력 형태 맞추기
     X_input = temp_scaled.reshape(1, 10, 1)
 
     # 7. 예측
-    y_pred_scaled = model.predict(X_input)
+    y_pred_scaled = temp_model.predict(X_input)
 
     # 8. 역변환
-    y_pred = scaler.inverse_transform(y_pred_scaled)
+    y_pred = temp_scaler.inverse_transform(y_pred_scaled)
     print(f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃")
     return jsonify({
         "temp" : f"현재 저장된 10개의 온도 값: {temps}",
         "predict": f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃"
+        })
+
+@bp.route('/test/predict/humi',methods=['POST'])
+def pred_humi():
+    if humi_model is None or humi_scaler is None:
+       return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
+
+    rows = (
+        md.testData.query
+        .with_entities(md.testData.humi,md.testData.id)
+        .order_by(md.testData.id.desc())
+        .limit(10)
+        .all()
+    )
+    humis = [t for t,_ in rows]
+    
+    
+    humis = np.array(humis).reshape(-1, 1)
+    humi_scaled = humi_scaler.transform(humis) 
+
+    # 6. LSTM 입력 형태 맞추기
+    X_input = humi_scaled.reshape(1, 10, 1)
+
+    # 7. 예측
+    y_pred_scaled = humi_model.predict(X_input)
+
+    # 8. 역변환
+    y_pred = humi_scaler.inverse_transform(y_pred_scaled)
+    print(f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃")
+    return jsonify({
+        "humi" : f"현재 저장된 10개의 습도 값: {humis}",
+        "predict": f"예측된 다음 시점 습도: {y_pred[0][0]:.2f} %"
+        })
+
+
+@bp.route('/test/predict/co2',methods=['POST'])
+def pred_co2():
+    if co2_model is None or co2_scaler is None:
+       return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
+
+    rows = (
+        md.testData.query
+        .with_entities(md.testData.co2,md.testData.id)
+        .order_by(md.testData.id.desc())
+        .limit(10)
+        .all()
+    )
+    co2s = [t for t,_ in rows]
+    
+    
+    co2s = np.array(co2s).reshape(-1, 1)
+    co2_scaled = co2_scaler.transform(co2s) 
+
+    # 6. LSTM 입력 형태 맞추기
+    X_input = co2_scaled.reshape(1, 10, 1)
+
+    # 7. 예측
+    y_pred_scaled = co2_model.predict(X_input)
+
+    # 8. 역변환
+    y_pred = co2_scaler.inverse_transform(y_pred_scaled)
+    print(f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃")
+    return jsonify({
+        "co2" : f"현재 저장된 10개의 co2 값: {co2s}",
+        "predict": f"예측된 다음 시점 co2 값: {y_pred[0][0]:.2f} ppm"
+        })
+
+
+@bp.route('/test/predict/light',methods=['POST'])
+def pred_light():
+    if light_model is None or light_scaler is None:
+       return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
+
+    rows = (
+        md.testData.query
+        .with_entities(md.testData.light,md.testData.id)
+        .order_by(md.testData.id.desc())
+        .limit(10)
+        .all()
+    )
+    if len(rows) < 10:
+       return jsonify({"error": "예측에 필요한 조도 데이터가 부족합니다 (10개 필요)."}), 400
+    lights = [t for t,_ in rows]
+    
+    
+    lights = np.array(lights).reshape(-1, 1)
+    light_scaled = light_scaler.transform(lights) 
+
+    # 6. LSTM 입력 형태 맞추기
+    X_input = light_scaled.reshape(1, 10, 1)
+
+    # 7. 예측
+    y_pred_scaled = light_model.predict(X_input)
+
+    # 8. 역변환
+    y_pred = light_scaler.inverse_transform(y_pred_scaled)
+    print(f"예측된 다음 시점 조도: {y_pred[0][0]:.2f} ℃")
+    return jsonify({
+        "light" : f"현재 저장된 10개의 조도 값: {lights}",
+        "predict": f"예측된 다음 시점 조도: {y_pred[0][0]:.2f} lux"
         })
 
 
@@ -43,8 +164,15 @@ def pred():
 @bp.route('/test/insert')
 def test_insert():
     for i in range(1,100):
-        data = md.testData(temp=random.randint(20, 40))
-        md.db.session.add(data)
+        
+        entry = md.testData(
+            temp = round(random.uniform(15, 30), 2),
+            humi = round(random.uniform(50, 90), 2),
+            co2 = random.randint(300,1200),
+            light = random.randint(1000,6000)
+            
+        )
+        md.db.session.add(entry)
     md.db.session.commit();
     return jsonify({'message': '테스트 저장 성공'})
 #테스트용 코드 구분

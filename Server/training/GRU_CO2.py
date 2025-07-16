@@ -40,7 +40,7 @@ time_steps = 30
 X_train, y_train = create_dataset(train_scaled, time_steps)
 X_test, y_test = create_dataset(test_scaled, time_steps)
 
-# LSTM 입력 shape 맞추기
+# GRU 입력 shape 맞추기
 X_train = X_train.reshape(-1, time_steps, 1)
 X_test = X_test.reshape(-1, time_steps, 1)
 
@@ -48,7 +48,7 @@ X_test = X_test.reshape(-1, time_steps, 1)
 X_train_final, X_val, y_train_final, y_val = train_test_split(
     X_train, y_train, test_size=0.15, shuffle=False)
 
-# LSTM 모델 (기본 MSE 손실함수 사용)
+# GRU 모델 (기본 MSE 손실함수 사용)
 model = Sequential([
     GRU(64, return_sequences=True, input_shape=(time_steps, 1)),
    GRU(32),
@@ -67,8 +67,8 @@ history = model.fit(
 )
 
 # 모델 저장
-model.save('CO2.h5')
-joblib.dump(scaler, 'CO2.pkl')
+#model.save('CO2.h5')
+#joblib.dump(scaler, 'CO2.pkl')
 
 # 테스트 데이터 예측
 test_loss, test_mae = model.evaluate(X_test, y_test)

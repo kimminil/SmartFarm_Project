@@ -7,15 +7,24 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.utils import CustomObjectScope
 import tensorflow.keras.backend as K
+
+
 bp = Blueprint('routes', __name__)
 
-cmd_temp = "NORMAL"
-cmd_humi = "NORMAL"
-cmd_co2 = "NORMAL"
-cmd_light = "NORMAL"
+CMD_TEMP = "NORMAL"
+CMD_HUMI = "NORMAL"
+CMD_CO2 = "NORMAL"
+CMD_LIGHT = "NORMAL"
 def weighted_loss(y_true, y_pred):
     weight = np.linspace(0.5, 1.5, num=y_true.shape[1])  # 마지막 값에 더 큰 가중치
     return K.mean(weight * K.square(y_pred - y_true))
+
+def range_filter(current,prev,min_val,max_val):
+    if current is None:
+        return prev
+    if current < min_val or current > max_val:
+        return prev
+    return current
 try:
     
     with CustomObjectScope({'weighted_loss': weighted_loss}):
@@ -102,10 +111,16 @@ def pred_temp():
         )
     
     temps = [t for t,_ in rows]
+    prev = temps[0]
+    filtered_temps = []
+    for t in temps:
+        filtered = range_filter(t,prev,5.0,40.0)
+        filtered_temps.append(filtered)
+        prev = filtered
+        
     
-    
-    temps = np.array(temps).reshape(-1, 1)
-    temp_scaled = temp_scaler.transform(temps) 
+    filtered_temps = np.array(filtered_temps).reshape(-1, 1)
+    temp_scaled = temp_scaler.transform(filtered_temps) 
 
     # 6. LSTM 입력 형태 맞추기
     X_input = temp_scaled.reshape(1, 30, 1)
@@ -117,7 +132,7 @@ def pred_temp():
     y_pred = temp_scaler.inverse_transform(y_pred_scaled)
     print(f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃")
     return jsonify({
-        "temp" : f"현재 저장된 10개의 온도 값: {temps}",
+        "temp" : f"현재 저장된 10개의 온도 값: {filtered_temps}",
         "predict": f"{y_pred[0][0]:.2f}"
         })
 
@@ -142,10 +157,16 @@ def pred_humi():
         )
     
     humis = [t for t,_ in rows]
+    prev = humis[0]
+    filtered_humis = []
+    for t in humis:
+        filtered = range_filter(t,prev,5.0,40.0)
+        filtered_humis.append(filtered)
+        prev = filtered
+        
     
-    
-    humis = np.array(humis).reshape(-1, 1)
-    humi_scaled = humi_scaler.transform(humis) 
+    filtered_humis = np.array(filtered_humis).reshape(-1, 1)
+    humi_scaled = humi_scaler.transform(filtered_humis) 
 
     # 6. LSTM 입력 형태 맞추기
     X_input = humi_scaled.reshape(1, 30, 1)
@@ -182,10 +203,16 @@ def pred_co2():
         .all()
         )
     co2s = [t for t,_ in rows]
+    prev = co2s[0]
+    filtered_co2s = []
+    for t in co2s:
+        filtered = range_filter(t,prev,5.0,40.0)
+        filtered_co2s.append(filtered)
+        prev = filtered
+        
     
-    
-    co2s = np.array(co2s).reshape(-1, 1)
-    co2_scaled = co2_scaler.transform(co2s) 
+    filtered_co2s = np.array(filtered_co2s).reshape(-1, 1)
+    co2_scaled = co2_scaler.transform(filtered_co2s) 
 
     # 6. LSTM 입력 형태 맞추기
     X_input = co2_scaled.reshape(1, 30, 1)
@@ -211,7 +238,7 @@ def test_insert():
     for i in range(1,100):
         
         entry = md.testData(
-            temp = round(random.uniform(15, 30), 2),
+            temp = round(random.uniform(0, 40), 2),
             humi = round(random.uniform(50, 90), 2),
             co2 = random.randint(300,1200),
             light = random.randint(1000,6000)
@@ -223,22 +250,12 @@ def test_insert():
 
 @bp.route('/test/result',methods=['POST'])
 def test_result():
-    global cmd_temp
-    global cmd_humi
-    global cmd_light
-    global cmd_co2
+    global CMD_TEMP
+    global CMD_HUMI
+    global CMD_LIGHT
+    global CMD_CO2
     data = request.json
-    '''
-    entry = md.testData(
-        temp = data['temp'],
-        humi = data['humi'],
-        co2 = data['co2'],
-        light = data['light']
-        
-    )
-    md.db.session.add(entry)
-    md.db.session.commit()
-    '''
+
     #예측 데이터
     temp_json = pred_temp()
     humi_json = pred_humi()
@@ -281,57 +298,71 @@ def test_result():
     CO2_LOW = 300
     CO2_HIGH = 1000
     HYSTERESIS = 1.0
-    if cmd_temp == "NORMAL":
+    if CMD_TEMP == "NORMAL":
         if temp_current >= TEMP_HIGH or weighted_temp >= TEMP_HIGH:
-            cmd_temp = "DECREASE"   # 냉각 시작
+            CMD_TEMP = "DECREASE"   # 냉각 시작
         elif temp_current <= TEMP_LOW or weighted_temp <= TEMP_LOW:
-            cmd_temp = "INCREASE"   # 난방 시작
-    elif cmd_temp == "DECREASE":
+            CMD_TEMP = "INCREASE"   # 난방 시작
+    elif CMD_TEMP == "DECREASE":
         if temp_current < TEMP_HIGH - HYSTERESIS or weighted_temp < TEMP_HIGH - HYSTERESIS:
-            cmd_temp = "NORMAL"
-    elif cmd_temp == "INCREASE":
+            CMD_TEMP = "NORMAL"
+    elif CMD_TEMP == "INCREASE":
         if temp_current > TEMP_LOW + HYSTERESIS or weighted_temp > TEMP_LOW + HYSTERESIS:
-            cmd_temp = "NORMAL"
+            CMD_TEMP = "NORMAL"
     
     # 습도 FSM
-    if cmd_humi == "NORMAL":
+    if CMD_HUMI == "NORMAL":
         if humi_current >= HUMI_HIGH or weighted_humi >= HUMI_HIGH:
-            cmd_humi = "DECREASE"   # 습도 낮춤 (제습)
+            CMD_HUMI = "DECREASE"   # 습도 낮춤 (제습)
         elif humi_current <= HUMI_LOW or weighted_humi <= HUMI_LOW:
-            cmd_humi = "INCREASE"   # 습도 올림 (가습)
-    elif cmd_humi == "DECREASE":
+            CMD_HUMI = "INCREASE"   # 습도 올림 (가습)
+    elif CMD_HUMI == "DECREASE":
         if humi_current < HUMI_HIGH - HYSTERESIS or weighted_humi < HUMI_HIGH - HYSTERESIS:
-            cmd_humi = "NORMAL"
-    elif cmd_humi == "INCREASE":
+            CMD_HUMI = "NORMAL"
+    elif CMD_HUMI == "INCREASE":
         if humi_current > HUMI_LOW + HYSTERESIS or weighted_humi > HUMI_LOW + HYSTERESIS:
-            cmd_humi = "NORMAL"
+            CMD_HUMI = "NORMAL"
     
     # CO2 FSM
-    if cmd_co2 == "NORMAL":
+    if CMD_CO2 == "NORMAL":
         if co2_current >= CO2_HIGH or weighted_co2 >= CO2_HIGH:
-            cmd_co2 = "DECREASE"   # 환기 (CO2 낮춤)
+            CMD_CO2 = "DECREASE"   # 환기 (CO2 낮춤)
         elif co2_current <= CO2_LOW or weighted_co2 <= CO2_LOW:
-            cmd_co2 = "INCREASE"   # CO2 증가 (필요시)
-    elif cmd_co2 == "DECREASE":
+            CMD_CO2 = "INCREASE"   # CO2 증가 (필요시)
+    elif CMD_CO2 == "DECREASE":
         if co2_current < CO2_HIGH - HYSTERESIS or weighted_co2 < CO2_HIGH - HYSTERESIS:
-            cmd_co2 = "NORMAL"
-    elif cmd_co2 == "INCREASE":
+            CMD_CO2 = "NORMAL"
+    elif CMD_CO2 == "INCREASE":
         if co2_current > CO2_LOW + HYSTERESIS or weighted_co2 > CO2_LOW + HYSTERESIS:
-            cmd_co2 = "NORMAL"
+            CMD_CO2 = "NORMAL"
     
     # 조도 FSM (실측값 기준)
-    if cmd_light == "NORMAL":
+    if CMD_LIGHT == "NORMAL":
         if light_current >= LIGHT_HIGH:
-            cmd_light = "DECREASE"   # 차광
+            CMD_LIGHT = "DECREASE"   # 차광
         elif light_current <= LIGHT_LOW:
-            cmd_light = "INCREASE"   # 조명 증가
-    elif cmd_light == "DECREASE":
+            CMD_LIGHT = "INCREASE"   # 조명 증가
+    elif CMD_LIGHT == "DECREASE":
         if light_current < (LIGHT_HIGH - HYSTERESIS):
-            cmd_light = "NORMAL"
-    elif cmd_light == "INCREASE":
+            CMD_LIGHT = "NORMAL"
+    elif CMD_LIGHT == "INCREASE":
         if light_current > (LIGHT_LOW + HYSTERESIS):
-            cmd_light = "NORMAL"
-
+            CMD_LIGHT = "NORMAL"
+    
+    entry = md.testData(
+        temp = data['temp'],
+        humi = data['humi'],
+        co2 = data['co2'],
+        light = data['light'],
+        cmd_temp = CMD_TEMP,
+        cmd_humi = CMD_HUMI,
+        cmd_co2 = CMD_CO2,
+        cmd_light = CMD_LIGHT
+        
+    )
+    md.db.session.add(entry)
+    md.db.session.commit()
+    
     return jsonify({
         'temp_predict' : f'{temp_predict}',
         'humi_predict' : f'{humi_predict}',
@@ -344,18 +375,12 @@ def test_result():
         'co2_current' : f"{data['co2']}",
         'light_current' : f"{data['light']}",
         
-        'cmd_temp' : f"{cmd_temp}",
-        'cmd_humi' : f"{cmd_humi}",
-        'cmd_light' : f"{cmd_light}",
-        'cmd_co2' : f"{cmd_co2}"
+        'CMD_TEMP' : f"{CMD_TEMP}",
+        'CMD_HUMI' : f"{CMD_HUMI}",
+        'CMD_LIGHT' : f"{CMD_LIGHT}",
+        'CMD_CO2' : f"{CMD_CO2}"
         })
     
-    
-    
-    
-    
-    
-    return jsonify({})
 #테스트용 코드 구분
 @bp.route('/init-db')
 def init_db():

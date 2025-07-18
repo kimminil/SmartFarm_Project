@@ -10,7 +10,10 @@ class testData(db.Model):
     humi = db.Column(db.Float,index=True)
     co2 = db.Column(db.Float,index=True)
     light = db.Column(db.Float,index=True)
-
+    cmd_temp = db.Column(db.String(20))
+    cmd_humi = db.Column(db.String(20))
+    cmd_co2 = db.Column(db.String(20))
+    cmd_light = db.Column(db.String(20))
 class record_control_condition(db.Model):
     __tablename__ = 'record_control_condition'
     product_num = db.Column(db.Integer,primary_key=True,index=True)

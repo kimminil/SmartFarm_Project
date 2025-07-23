@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_socketio import SocketIO
 import models as md
 import random
 import numpy as np
@@ -7,6 +8,8 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras.utils import CustomObjectScope
 import tensorflow.keras.backend as K
+from datetime import datetime,timezone,timedelta
+from dateutil import parser
 
 
 bp = Blueprint('routes', __name__)
@@ -15,6 +18,17 @@ CMD_TEMP = "NORMAL"
 CMD_HUMI = "NORMAL"
 CMD_CO2 = "NORMAL"
 CMD_LIGHT = "NORMAL"
+
+
+# utc->kst변환
+def parse_log_time(log_time_str):
+    dt = parser.parse(log_time_str)    # 자동 포맷 인식
+    if dt.tzinfo is None:
+        # 만약 tz가 없으면(로컬타임) → UTC로 가정 (필요에 따라 변경)
+        dt = dt.replace(tzinfo=timezone.utc)
+    # KST로 변환
+    return dt.astimezone(timezone(timedelta(hours=9)))
+
 def weighted_loss(y_true, y_pred):
     weight = np.linspace(0.5, 1.5, num=y_true.shape[1])  # 마지막 값에 더 큰 가중치
     return K.mean(weight * K.square(y_pred - y_true))
@@ -45,6 +59,14 @@ except Exception as e:
     co2_model = None
     co2_scaler = None
 
+
+def check_cmd(cmd):
+    if(cmd=="INCREASE"):
+        return 0
+    elif cmd=="NORMAL":
+        return 1
+    else:
+        return 2
     
 #테스트용 코드 구분
 # 연속성을 가진 테스트 데이터 저장
@@ -229,33 +251,23 @@ def pred_co2():
         })
 
 
+    
+#테스트용 코드 구분
+@bp.route('/init-db')
+def init_db():
+    md.db.create_all()
+    return "✅ DB 초기화 완료"
 
 
 
-
-@bp.route('/test/insert')
-def test_insert():
-    for i in range(1,100):
-        
-        entry = md.testData(
-            temp = round(random.uniform(0, 40), 2),
-            humi = round(random.uniform(50, 90), 2),
-            co2 = random.randint(300,1200),
-            light = random.randint(1000,6000)
-            
-        )
-        md.db.session.add(entry)
-    md.db.session.commit();
-    return jsonify({'message': '테스트 저장 성공'})
-
-@bp.route('/test/result',methods=['POST'])
-def test_result():
+@bp.route('/record_data/sensor_insert',methods=['POST'])
+def data_insert():
     global CMD_TEMP
     global CMD_HUMI
     global CMD_LIGHT
     global CMD_CO2
     data = request.json
-
+  
     #예측 데이터
     temp_json = pred_temp()
     humi_json = pred_humi()
@@ -292,11 +304,11 @@ def test_result():
     HUMI_LOW = 40.0
     HUMI_HIGH = 70.0
     
-    LIGHT_LOW = 8000
-    LIGHT_HIGH = 15000
+    LIGHT_LOW = 1.0
+    LIGHT_HIGH = 45.0
     
-    CO2_LOW = 300
-    CO2_HIGH = 1000
+    CO2_LOW = 2000
+    CO2_HIGH = 3500
     HYSTERESIS = 1.0
     if CMD_TEMP == "NORMAL":
         if temp_current >= TEMP_HIGH or weighted_temp >= TEMP_HIGH:
@@ -349,71 +361,56 @@ def test_result():
         if light_current > (LIGHT_LOW + HYSTERESIS):
             CMD_LIGHT = "NORMAL"
     
-    entry = md.testData(
-        temp = data['temp'],
-        humi = data['humi'],
-        co2 = data['co2'],
-        light = data['light'],
-        cmd_temp = CMD_TEMP,
-        cmd_humi = CMD_HUMI,
-        cmd_co2 = CMD_CO2,
-        cmd_light = CMD_LIGHT
-        
-    )
-    md.db.session.add(entry)
-    md.db.session.commit()
     
-    return jsonify({
-        'temp_predict' : f'{temp_predict}',
-        'humi_predict' : f'{humi_predict}',
-        'co2_predict' : f'{co2_predict}',
-        
-        
-        #현재 데이터
-        'temp_current' : f"{data['temp']}",
-        'humi_current' : f"{data['humi']}",
-        'co2_current' : f"{data['co2']}",
-        'light_current' : f"{data['light']}",
-        
-        'CMD_TEMP' : f"{CMD_TEMP}",
-        'CMD_HUMI' : f"{CMD_HUMI}",
-        'CMD_LIGHT' : f"{CMD_LIGHT}",
-        'CMD_CO2' : f"{CMD_CO2}"
-        })
-    
-#테스트용 코드 구분
-@bp.route('/init-db')
-def init_db():
-    md.db.create_all()
-    return "✅ DB 초기화 완료"
-
-
-
-@bp.route('/record_data/insert',methods=['POST'])
-def data_insert():
-    data = request.json
     entry = md.record_data(
+        
         log_time = data['log_time'],
         temp = data['temp'],
         humi = data['humi'],
         co2 = data['co2'],
         light = data['light'],
-        w_height = data['w_height']
+        w_height = data['w_height'],
+        cmd_temp_peltier = CMD_TEMP,
+        cmd_fan = CMD_HUMI,
+        cmd_light = CMD_LIGHT,
+        cmd_co2_vent = CMD_CO2
         
     )
+    
+    
     md.db.session.add(entry)
     md.db.session.commit()
-    return jsonify({'message': '센서 저장 성공'})
+    return jsonify(entry.to_dict()), 200
 
-@bp.route('/record_access/insert',methods=['POST'])
+@bp.route('/record_data/data_sensor_load',methods=['POST'])
+def return_data():
+    last_record = (
+        md.record_data.query
+        .order_by(md.record_data.No.desc())
+        .first()
+    )
+    print(f"cmd_light: {last_record.cmd_light}")
+    print(f"cmd_fan: {last_record.cmd_fan}")
+    print(f"cmd_temp_peltier: {last_record.cmd_temp_peltier}")
+    print(f"cmd_co2_vent: {last_record.cmd_co2_vent}")
+    last_record.cmd_fan = check_cmd(last_record.cmd_fan)
+    last_record.cmd_light = check_cmd(last_record.cmd_light)
+    last_record.cmd_co2_vent = check_cmd(last_record.cmd_co2_vent)
+    last_record.cmd_temp_peltier = check_cmd(last_record.cmd_temp_peltier)
+        
+    record = last_record.to_dict()
+    return jsonify(record), 200
+    
+    
+@bp.route('/record_access/test_insert',methods=['POST'])
 def access_insert():
     data = request.json
     entry = md.record_access(
         access_time = data['access_time']
         )
-    md.db.sesssion.add(entry)
+    md.db.session.add(entry)
     md.db.session.commit();
-    return jsonify({'message': '로그 저장 성공'})
+    return jsonify({'message': 'Pass'})
 @bp.route('/position/insert',methods=['POST'])
 def posi_insert():
     data = request.json
@@ -421,7 +418,7 @@ def posi_insert():
         product_posi = data['product_posi'],
         status = data['status']
         )
-    md.db.sesssion.add(entry)
+    md.db.session.add(entry)
     md.db.session.commit();
     return jsonify({'message': '위치 저장 성공'})
 '''

@@ -42,10 +42,14 @@ class record_data(db.Model):
     co2 = db.Column(db.Float,index=True)
     light= db.Column(db.Float,index=True)
     w_height = db.Column(db.Float,index=True)
-    cmd_Peltier = db.Column(db.VARCHAR(50),index=True)
+    cmd_temp_peltier = db.Column(db.VARCHAR(50),index=True)
     cmd_fan = db.Column(db.VARCHAR(10),index=True)
     cmd_light = db.Column(db.VARCHAR(10),index=True)
-    cmd_w_pump = db.Column(db.VARCHAR(10),index=True)
+    cmd_co2_vent = db.Column(db.VARCHAR(10),index=True)
+    
+    def to_dict(self):
+       return { c.name: getattr(self, c.name) 
+                for c in self.__table__.columns }
 
 class record_product_condition(db.Model):
     __tablename__='record_product_condition'

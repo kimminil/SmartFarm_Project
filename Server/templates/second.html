@@ -64,7 +64,18 @@
         <img src="{{ url_for('video_feed') }}" alt="카메라 피드">
     </div>
 
-    <a href="/" class="nav-link">← 대시보드로 돌아가기</a>
+   <button onclick="goToIndex()">대시보드로 돌아가기</button>
+    <script>
+    
+      function goToIndex() {
+        fetch('/camera_close').then(() => {
+          window.location.href = '/';
+        });
+      }
+      window.addEventListener('beforeunload', function() {
+        fetch('/camera_close');
+      });
+    </script>
 
 </body>
 </html>

@@ -98,7 +98,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const socket = io();
     let todayChart, historyChart;
-
+    
+    // begin co2_history
+    let co2_hist_arr = [];
+    let co2_hist_arr_max = 20;
+    // end co2_history
+    
     const datetimeElement = document.getElementById('datetime');
     function updateTime() {
         const now = new Date();
@@ -164,8 +169,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 stepSize: 2
             }
         },
-        y_co2: { type: 'linear', offset: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'CO₂ (ppm)' } },
-        y_lux: { type: 'linear', offset: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '조도 (lux)' } }
+        y_co2: { 
+            type: 'linear', 
+            offset: true, 
+            min:2300,
+            max:3200,
+            position: 'right', 
+            grid: { drawOnChartArea: false }, 
+            title: { display: true, text: 'CO₂ (ppm)' } 
+        },
+        y_lux: { 
+            type: 'linear',
+            min:0,
+            max:15, 
+            offset: true, 
+            position: 'right', 
+            grid: { drawOnChartArea: false }, 
+            title: { display: true, text: '조도 (lux)' } 
+        }
     };
 
     const today = new Date();
@@ -189,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             min: startOfToday.valueOf(),
             max: Date.now(),
             ticks: { callback: timeTickCallback, autoSkip: false },
-            time: { unit: 'hour' }, 
+            time: { unit: 'minute' }, 
             title: { display: true, text: `시간 (KST) - ${todayStr}` }
         }, 
         ...yScales 
@@ -212,11 +233,55 @@ document.addEventListener('DOMContentLoaded', function() {
         todayChart.options.scales.x.max = Date.now();
         todayChart.update('none');
     }, 30 * 1000); 
+    
+    const offset  = new Date().getTimezoneOffset();
+    console.log(offset/60)
     function populateChart(chart, data) {
-        chart.data.datasets[0].data = data.map(d => ({ x: new Date(d.log_time), y: d.temp }));
-        chart.data.datasets[1].data = data.map(d => ({ x: new Date(d.log_time), y: d.humi }));
-        chart.data.datasets[2].data = data.map(d => ({ x: new Date(d.log_time), y: d.co2 }));
-        chart.data.datasets[3].data = data.map(d => ({ x: new Date(d.log_time), y: d.light }));
+        
+        let filtered = data.filter(d => {
+            const t = new Date(d.log_time)
+            const GMTNow = t.getTime()+t.getTimezoneOffset()*60*1000
+            <!-- -->
+            //1. 5분마다 평균으로 잡고,for문으로 5개를 끊어 평균 구해 업데이트
+            //2. 그 전에 평균치 해서 던진다. 
+            
+            // begin co2_hist_arr
+            co2_hist_arr.push(d.co2);
+            if ( co2_hist_arr.length > co2_hist_arr_max ) {
+                co2_hist_arr.shift();
+            }
+            let sum = co2_hist_arr.reduce(
+                    (accumulator,current)=> accumulator + current,0
+            );
+            d.co2 = sum / co2_hist_arr.length;
+            // end co2_hist_arr
+            <!-- -->
+            
+            return GMTNow >= startOfToday && GMTNow <= Date.now();
+        });
+        console.log('filtered:', filtered);
+        console.log('차트에 들어갈 데이터 개수:', filtered.length);
+        chart.data.datasets[0].data = filtered.map(d => {
+            const t = new Date(d.log_time);
+            const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+            return { x: new Date(GMTNow), y: d.temp };
+        });
+        
+        chart.data.datasets[1].data = filtered.map(d => {
+            const t = new Date(d.log_time);
+            const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+            return { x: new Date(GMTNow), y: d.humi };
+        });
+        chart.data.datasets[2].data = filtered.map(d => {
+            const t = new Date(d.log_time);
+            const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+            return { x: new Date(GMTNow), y: d.co2 };
+        });
+              chart.data.datasets[3].data = filtered.map(d => {
+                  const t = new Date(d.log_time);
+                  const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+                  return { x: new Date(GMTNow), y: d.light };
+              });
         chart.update();
     }
     async function loadChartData(endpoint, chart) {
@@ -261,13 +326,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const now = new Date(data.timestamp);
         updateLatestValues(data);
         addLogRow(data);
-        if (now >= startOfToday) { // getNow() 쓸 필요 없음
+        if (now >= startOfToday) { 
             const chartData = todayChart.data;
             chartData.datasets[0].data.push({ x: now, y: data.temp });
             chartData.datasets[1].data.push({ x: now, y: data.humi });
             chartData.datasets[2].data.push({ x: now, y: data.co2 });
             chartData.datasets[3].data.push({ x: now, y: data.light });
-            todayChart.update('none');
+            todayChart.update('active');
         }
     });
 });

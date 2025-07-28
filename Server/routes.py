@@ -260,7 +260,127 @@ def init_db():
 
 
 
+@bp.route('/record_data/sensor_insert',methods=['POST'])
+def data_insert():
+    global CMD_TEMP
+    global CMD_HUMI
+    global CMD_LIGHT
+    global CMD_CO2
+    data = request.json
 
+    #예측 데이터
+    temp_json = pred_temp()
+    humi_json = pred_humi()
+    co2_json = pred_co2()
+
+
+    co2_data = co2_json.get_json()
+    temp_data = temp_json.get_json()
+    humi_data = humi_json.get_json()
+
+
+    temp_predict = float(temp_data.get("predict"))
+    humi_predict = float(humi_data.get("predict"))
+    co2_predict = float(co2_data.get("predict"))
+
+
+    #현재 데이터
+    temp_current = float(data['temp'])
+    humi_current = float(data['humi'])
+    co2_current = float(data['co2'])
+    light_current = float(data['light'])
+
+    #제어 명령 결정
+
+
+    #가중 평균 보정
+    weighted_temp = 0.7 * temp_current + 0.3 * temp_predict
+    weighted_humi = 0.9 * humi_current + 0.1 * humi_predict
+
+    weighted_co2 = 0.7 * co2_current + 0.3 * co2_predict
+    TEMP_LOW = 12.0
+    TEMP_HIGH = 28.0
+
+    HUMI_LOW = 40.0
+    HUMI_HIGH = 70.0
+
+    LIGHT_LOW = 1.0
+    LIGHT_HIGH = 45.0
+
+    CO2_LOW = 2000
+    CO2_HIGH = 3500
+    HYSTERESIS = 1.0
+    if CMD_TEMP == "NORMAL":
+        if temp_current >= TEMP_HIGH or weighted_temp >= TEMP_HIGH:
+            CMD_TEMP = "DECREASE"   # 냉각 시작
+        elif temp_current <= TEMP_LOW or weighted_temp <= TEMP_LOW:
+            CMD_TEMP = "INCREASE"   # 난방 시작
+    elif CMD_TEMP == "DECREASE":
+        if temp_current < TEMP_HIGH - HYSTERESIS or weighted_temp < TEMP_HIGH - HYSTERESIS:
+            CMD_TEMP = "NORMAL"
+    elif CMD_TEMP == "INCREASE":
+        if temp_current > TEMP_LOW + HYSTERESIS or weighted_temp > TEMP_LOW + HYSTERESIS:
+            CMD_TEMP = "NORMAL"
+
+    # 습도 FSM
+    if CMD_HUMI == "NORMAL":
+        if humi_current >= HUMI_HIGH or weighted_humi >= HUMI_HIGH:
+            CMD_HUMI = "DECREASE"   # 습도 낮춤 (제습)
+        elif humi_current <= HUMI_LOW or weighted_humi <= HUMI_LOW:
+            CMD_HUMI = "INCREASE"   # 습도 올림 (가습)
+    elif CMD_HUMI == "DECREASE":
+        if humi_current < HUMI_HIGH - HYSTERESIS or weighted_humi < HUMI_HIGH - HYSTERESIS:
+            CMD_HUMI = "NORMAL"
+    elif CMD_HUMI == "INCREASE":
+        if humi_current > HUMI_LOW + HYSTERESIS or weighted_humi > HUMI_LOW + HYSTERESIS:
+            CMD_HUMI = "NORMAL"
+
+    # CO2 FSM
+    if CMD_CO2 == "NORMAL":
+        if co2_current >= CO2_HIGH or weighted_co2 >= CO2_HIGH:
+            CMD_CO2 = "DECREASE"   # 환기 (CO2 낮춤)
+        elif co2_current <= CO2_LOW or weighted_co2 <= CO2_LOW:
+            CMD_CO2 = "INCREASE"   # CO2 증가 (필요시)
+    elif CMD_CO2 == "DECREASE":
+        if co2_current < CO2_HIGH - HYSTERESIS or weighted_co2 < CO2_HIGH - HYSTERESIS:
+            CMD_CO2 = "NORMAL"
+    elif CMD_CO2 == "INCREASE":
+        if co2_current > CO2_LOW + HYSTERESIS or weighted_co2 > CO2_LOW + HYSTERESIS:
+            CMD_CO2 = "NORMAL"
+
+    # 조도 FSM (실측값 기준)
+    if CMD_LIGHT == "NORMAL":
+        if light_current >= LIGHT_HIGH:
+            CMD_LIGHT = "DECREASE"   # 차광
+        elif light_current <= LIGHT_LOW:
+            CMD_LIGHT = "INCREASE"   # 조명 증가
+    elif CMD_LIGHT == "DECREASE":
+        if light_current < (LIGHT_HIGH - HYSTERESIS):
+            CMD_LIGHT = "NORMAL"
+    elif CMD_LIGHT == "INCREASE":
+        if light_current > (LIGHT_LOW + HYSTERESIS):
+            CMD_LIGHT = "NORMAL"
+
+
+    entry = md.record_data(
+
+        log_time = data['log_time'],
+        temp = data['temp'],
+        humi = data['humi'],
+        co2 = data['co2'],
+        light = data['light'],
+        w_height = data['w_height'],
+        cmd_temp_peltier = CMD_TEMP,
+        cmd_fan = CMD_HUMI,
+        cmd_light = CMD_LIGHT,
+        cmd_co2_vent = CMD_CO2
+
+    )
+
+
+    md.db.session.add(entry)
+    md.db.session.commit()
+    return jsonify(entry.to_dict()), 200
 
 @bp.route('/record_data/data_sensor_load',methods=['POST'])
 def return_data():
@@ -269,10 +389,7 @@ def return_data():
         .order_by(md.record_data.No.desc())
         .first()
     )
-    print(f"cmd_light: {last_record.cmd_light}")
-    print(f"cmd_fan: {last_record.cmd_fan}")
-    print(f"cmd_temp_peltier: {last_record.cmd_temp_peltier}")
-    print(f"cmd_co2_vent: {last_record.cmd_co2_vent}")
+
     last_record.cmd_fan = check_cmd(last_record.cmd_fan)
     last_record.cmd_light = check_cmd(last_record.cmd_light)
     last_record.cmd_co2_vent = check_cmd(last_record.cmd_co2_vent)

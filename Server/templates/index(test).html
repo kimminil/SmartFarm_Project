@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>식물 성장 대시보드</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <style>
+    body { font-family: 'Nanum Gothic', Arial, sans-serif; background: #f7f9fa; }
+    .container { width: 98%; margin: 10px auto; }
+    .top-header-area {
+      display: flex; justify-content: space-between; align-items: center;
+      width: 100%; margin-bottom: 0.5rem; padding: 0 1rem; box-sizing: border-box;
+    }
+    .dashboard-header {
+      font-size: 2rem; font-weight: bold; flex: 1; text-align: center;
+    }
+    .current-datetime {
+      font-size: 1.2rem; color: #555; white-space: nowrap;
+    }
+    .cards-group {
+      display: flex; justify-content: space-between;
+      margin-bottom: 16px; flex-wrap: wrap; gap: 16px;
+    }
+    .card {
+      flex: 1; margin: 0 8px; background: #fff; border-radius: 18px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      padding: 1.5rem; text-align: center; box-sizing: border-box;
+    }
+    .cards-group > .card { margin: 0; }
+    .card-title { color: #666; font-size: 1rem; margin-bottom: 10px; }
+    .card-value { font-size: 2.1rem; font-weight: bold; }
+    .chart-container {
+      background: #fff; border-radius: 16px; padding: 2rem 1rem;
+      box-shadow: 0 2px 8px #eee;
+    }
+    .log-table-container {
+      background: #fff; border-radius: 12px; margin: 2rem 0; padding: 1rem 0;
+      box-shadow: 0 2px 8px #eee;
+    }
+    .log-table {
+      width: 98%; margin: 0 auto; border-collapse: collapse;
+    }
+    .log-table th, .log-table td {
+      padding: 8px 10px; border-bottom: 1px solid #e6e6e6; text-align: center;
+    }
+    .log-table th { background: #f0f0f0; font-weight: bold; }
+    .camera-link-bottom {
+      display: block; text-align: right; margin-top: 15px;
+      margin-right: 1rem; font-size: 1.1em; color: #3498db;
+      text-decoration: none; font-weight: 500;
+    }
+    .camera-link-bottom:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-header-area">
+      <div class="dashboard-header">식물 성장 대시보드</div>
+      <div class="current-datetime" id="current-datetime"></div>
+    </div>
+
+    <div class="cards-group">
+      <div class="card"><div class="card-title">현재 온도</div><div class="card-value" id="current-temp">--.- ℃</div></div>
+      <div class="card"><div class="card-title">현재 습도</div><div class="card-value" id="current-humi">-- %</div></div>
+      <div class="card"><div class="card-title">현재 CO₂</div><div class="card-value" id="current-co2">--- ppm</div></div>
+      <div class="card"><div class="card-title">조도</div><div class="card-value" id="current-light">--- lux</div></div>
+    </div>
+
+    <div class="cards-group">
+      <div class="card"><div class="card-title">동작 상태(온도)</div><div class="card-value" id="status-temp">확인 중...</div></div>
+      <div class="card"><div class="card-title">동작 상태(습도)</div><div class="card-value" id="status-humi">확인 중...</div></div>
+      <div class="card"><div class="card-title">동작 상태(CO₂)</div><div class="card-value" id="status-co2">확인 중...</div></div>
+      <div class="card"><div class="card-title">동작 상태(조도)</div><div class="card-value" id="status-light">확인 중...</div></div>
+    </div>
+
+    <div class="chart-container">
+      <canvas id="sensorChart" height="110"></canvas>
+    </div>
+
+    <div class="log-table-container">
+      <div style="font-weight:bold; text-align:center; margin:18px 0 10px 0;">최근 센서 데이터 로그</div>
+      <table class="log-table" id="log-table">
+        <thead>
+          <tr>
+            <th>시간</th><th>온도 (℃)</th><th>습도 (%)</th><th>CO₂ (ppm)</th><th>조도 (lux)</th>
+          </tr>
+        </thead>
+        <tbody id="log-table-body"></tbody>
+      </table>
+    </div>
+
+    <a href="/second" class="camera-link-bottom">카메라 스트리밍</a>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const today = new Date().toISOString().slice(0, 10);
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: '온도 (℃)', data: [], borderColor: 'red', fill: false, yAxisID: 'y' },
+          { label: '습도 (%)', data: [], borderColor: 'blue', fill: false, yAxisID: 'y' },
+          { label: 'CO₂ (ppm)', data: [], borderColor: 'green', fill: false, yAxisID: 'y1' },
+          { label: '조도 (lux)', data: [], borderColor: 'orange', fill: false, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: '오늘의 센서 데이터' },
+          legend: { position: 'top' }
+        },
+        scales: {
+          x: { title: { display: true, text: `Today: ${today}` }},
+          y: { position: 'left', title: { display: true, text: '온도 / 습도' }},
+          y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'CO₂ / 조도' }}
+        }
+      }
+    });
+
+    const socket = io();
+    socket.on('sensor_update', msg => {
+      document.getElementById('current-temp').innerText = msg.temperature != null ? msg.temperature.toFixed(1) + ' ℃' : '--.-';
+      document.getElementById('current-humi').innerText = msg.humidity != null ? msg.humidity.toFixed(1) + ' %' : '--';
+      document.getElementById('current-co2').innerText = msg.co2 != null ? msg.co2 + ' ppm' : '---';
+      document.getElementById('current-light').innerText = msg.light_level != null ? msg.light_level + ' lux' : '---';
+
+      document.getElementById('status-temp').innerText = msg.temperature != null ? "🟢 정상 작동 합니다!" : "🔴 오류/데이터 없음";
+      document.getElementById('status-temp').style.color = msg.temperature != null ? "#28a745" : "#dc3545";
+
+      document.getElementById('status-humi').innerText = msg.humidity != null ? "🟢 정상 작동 합니다!" : "🔴 오류/데이터 없음";
+      document.getElementById('status-humi').style.color = msg.humidity != null ? "#28a745" : "#dc3545";
+
+      document.getElementById('status-co2').innerText = msg.co2 != null ? "🟢 정상 작동 합니다!" : "🔴 오류/데이터 없음";
+      document.getElementById('status-co2').style.color = msg.co2 != null ? "#28a745" : "#dc3545";
+
+      document.getElementById('status-light').innerText = msg.light_level != null ? "🟢 정상 작동 합니다!" : "🔴 오류/데이터 없음";
+      document.getElementById('status-light').style.color = msg.light_level != null ? "#28a745" : "#dc3545";
+
+      const now = (msg.timestamp || "").slice(11, 19);
+      chart.data.labels.push(now);
+      chart.data.datasets[0].data.push(msg.temperature);
+      chart.data.datasets[1].data.push(msg.humidity);
+      chart.data.datasets[2].data.push(msg.co2);
+      chart.data.datasets[3].data.push(msg.light_level);
+      if (chart.data.labels.length > 60) {
+        chart.data.labels.shift();
+        chart.data.datasets.forEach(ds => ds.data.shift());
+      }
+      chart.update();
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${now}</td>
+        <td>${msg.temperature != null ? msg.temperature.toFixed(1) : ''}</td>
+        <td>${msg.humidity != null ? msg.humidity.toFixed(1) : ''}</td>
+        <td>${msg.co2 != null ? msg.co2 : ''}</td>
+        <td>${msg.light_level != null ? msg.light_level : ''}</td>`;
+      const body = document.getElementById('log-table-body');
+      body.insertBefore(tr, body.firstChild);
+      while (body.rows.length > 12) body.deleteRow(-1);
+    });
+
+    function updateDateTime() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const h = now.getHours();
+      const M = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      const ampm = h < 12 ? '오전' : '오후';
+      const hh = h % 12 === 0 ? 12 : h % 12;
+      document.getElementById('current-datetime').innerText = `${y}년 ${m}월 ${d}일 ${ampm} ${hh}:${M}:${s}`;
+    }
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+  </script>
+</body>
+</html>

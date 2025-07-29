@@ -64,6 +64,7 @@ def select_db():
         )
         if last_record:
             data = last_record.to_dict()
+            logger.info(data)
             log_time = data.get('log_time')
             if log_time:
                 data['timestamp'] = log_time.isoformat()

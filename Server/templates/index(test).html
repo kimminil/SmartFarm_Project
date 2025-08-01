@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 식물 성장 대시보드</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        .nav-button {
+            display: inline-block;
+            padding: 8px 14px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 7px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+        }
+        .nav-button:hover {
+            background-color: #2980b9;
+        }
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .header h1 {
+            font-weight: 700;
+            color: #343a40;
+        }
+        .header #datetime {
+            font-size: 1.2em;
+            color: #495057;
+        }
+        .status-card, .log-card {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        .status-card h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+        .status-card .value {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #343a40;
+        }
+        .chart-container {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: 60vh;
+        }
+        .log-card h3 {
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+        #log-table {
+            font-size: 0.9em;
+        }
+        .cards-group {
+          display: flex; justify-content: space-between;
+          margin-bottom: 16px; flex-wrap: wrap; gap: 16px;
+        }
+        .card {
+          flex: 1; margin: 0 8px; background: #fff; border-radius: 18px;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+          padding: 1.5rem; text-align: center; box-sizing: border-box;
+        }
+        .cards-group > .card { margin: 0; }
+        .card-title { color: #666; font-size: 1rem; margin-bottom: 10px; }
+        .card-value { font-size: 2.1rem; font-weight: bold; }
+        .chart-container {
+          background: #fff; border-radius: 16px; padding: 2rem 1rem;
+          box-shadow: 0 2px 8px #eee;
+        }
+    </style>
+</head>
+<body>
+    <tr></tr>
+    <div class="container-fluid my-4">
+        <div class="header text-center mb-4 border-bottom pb-3">
+            <h1>실시간 식물 성장 대시보드</h1>
+            <p id="datetime" class="mb-0"></p>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col"><div class="status-card"><h3>현재 온도</h3><p class="value" id="current-temp">__._ ℃</p></div></div>
+            <div class="col"><div class="status-card"><h3>현재 습도</h3><p class="value" id="current-humi">__._ %</p></div></div>
+            <div class="col"><div class="status-card"><h3>현재 CO₂</h3><p class="value" id="current-co2">___ ppm</p></div></div>
+            <div class="col"><div class="status-card"><h3>조도</h3><p class="value" id="current-light">____ lux</p></div></div>
+                        
+        </div>
+        <div class="cards-group">
+              <div class="card"><div class="card-title">동작 상태(온도)</div><div class="card-value" id="status-temp">확인 중...</div></div>
+              <div class="card"><div class="card-title">동작 상태(습도)</div><div class="card-value" id="status-humi">확인 중...</div></div>
+              <div class="card"><div class="card-title">동작 상태(CO₂)</div><div class="card-value" id="status-co2">확인 중...</div></div>
+              <div class="card"><div class="card-title">동작 상태(조도)</div><div class="card-value" id="status-light">확인 중...</div></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="sensorChart" height="110"></canvas>
+        </div>
+
+        
+        <div class="row">
+            <div class="col">
+            
+                <div class="log-card">
+                <a href="/camera" class="nav-button">실시간 카메라 보기 →</a>            
+                    <h3>최근 센서 데이터 로그</h3>
+                    <div class="table-responsive">
+                        <table class="table table-hover text-center" id="log-table">
+                            <thead class="table-light">
+                                <tr><th>시간</th><th>온도 (°C)</th><th>습도 (%)</th><th>CO₂ (ppm)</th><th>조도 (lux)</th></tr>
+                            
+                            </thead>
+                            <tbody id="log-table-body">
+                            </tbody>
+                             
+                        </table>
+                       
+                    </div>
+                   
+                </div>
+                
+            </div>
+            
+        </div>
+         
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const logTableBody = document.querySelector('#log-table tbody');
+    let co2_hist_arr = [];
+    let co2_hist_arr_max = 20;
+    const socket = io();
+    const datetimeElement = document.getElementById('datetime');
+    function updateTime() {
+        const now = new Date();
+        datetimeElement.textContent = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 ${now.toLocaleTimeString('ko-KR')}`;
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    function formatDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+    
+    const tempElement = document.getElementById('current-temp');
+    const humidityElement = document.getElementById('current-humi');
+    const co2Element = document.getElementById('current-co2');
+    const lightElement = document.getElementById('current-light');
+    const naText = `<span class="na-value">N/A</span>`;
+    
+     
+    const statusTemp = document.getElementById('status-temp')
+    
+
+    const statusHumi = document.getElementById('status-humi')
+    
+
+    const statusCo2 = document.getElementById('status-co2')
+    
+    const statusLight = document.getElementById('status-light')
+    
+    
+
+
+    
+    function generateSampleData(baseDate) {
+        const data = { temperature: [], humidity: [], co2: [], light: [] };
+        for (let i = 0; i < 24 * 4; i++) {
+            const timestamp = new Date(baseDate);
+            timestamp.setMinutes(timestamp.getMinutes() + i * 15);
+            const hour = timestamp.getHours() + timestamp.getMinutes() / 60;
+
+            const temp = 21.5 + 3.5 * Math.sin((hour - 9) * Math.PI / 12);
+            const humid = 65 - 15 * Math.sin((hour - 9) * Math.PI / 12);
+            const light = hour > 6 && hour < 19 ? Math.sin((hour - 6) * Math.PI / 13) * 2000 : Math.random() * 10;
+            const co2 = 450 + (light > 100 ? 200 * (light / 2000) : 0) + (Math.random() - 0.5) * 50;
+
+            data.temperature.push({ x: timestamp, y: temp });
+            data.humidity.push({ x: timestamp, y: humid });
+            data.co2.push({ x: timestamp, y: co2 });
+            data.light.push({ x: timestamp, y: light });
+        }
+        return data;
+    }
+
+    function populateLogTable(data, count = 10) {
+        const logTableBody = document.getElementById('log-table-body');
+        logTableBody.innerHTML = '';
+
+        const dataLength = data.temperature.length;
+        const startIndex = Math.max(0, dataLength - count);
+
+        for (let i = dataLength - 1; i >= startIndex; i--) {
+            const newRow = document.createElement('tr');
+            const timestamp = new Date(data.temperature[i].x);
+
+            newRow.innerHTML = `
+                <td>${timestamp.toLocaleTimeString('ko-KR', { hour12: false })}</td>
+                <td>${data.temperature[i].y.toFixed(1)}</td>
+                <td>${data.humidity[i].y.toFixed(1)}</td>
+                <td>${data.co2[i].y.toFixed(0)}</td>
+                <td>${data.light[i].y.toFixed(0)}</td>
+                
+            `;
+            logTableBody.appendChild(newRow);
+        }
+    }
+
+
+    
+    const timeTickCallback = function(value, index, ticks) {
+        const date = new Date(value);
+        const hour = date.getHours();
+        const hours = String(hour).padStart(2, '0');
+        return `${hours}:00`;
+    };
+
+    const ctx = document.getElementById('sensorChart').getContext('2d');
+    const today = new Date()
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    const todayStr = formatDate(today);
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: '온도 (℃)', data: [], borderColor: 'red', fill: false, yAxisID: 'y' },
+          { label: '습도 (%)', data: [], borderColor: 'blue', fill: false, yAxisID: 'y' },
+          { label: 'CO₂ (ppm)', data: [], borderColor: 'green', fill: false, yAxisID: 'y1' },
+          { label: '조도 (lux)', data: [], borderColor: 'orange', fill: false, yAxisID: 'y1' }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: { display: true, text: '오늘의 센서 데이터' },
+            
+          legend: { position: 'top' }
+        },
+        scales: {
+          x: { 
+              type: 'time',
+              min: startOfToday.valueOf(),
+              max: Date.now(),
+              ticks: { callback: timeTickCallback, autoSkip: false },
+              time: { unit: 'minute' }, 
+              title: { display: true, text: `Today: ${todayStr}` }
+              },
+          y: { position: 'left', title: { display: true, text: '온도 / 습도' }},
+          y1: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'CO₂ / 조도' }}
+        }
+      }
+    });
+    function addLogRow(data) {
+        const newRow = document.createElement('tr');
+        const timestamp = new Date(data.timestamp);
+        newRow.innerHTML = `
+            <td>${(new Date(data.timestamp)).toLocaleTimeString()}</td>
+            <td>${data.temp?.toFixed(1) ?? 'N/A'}</td>
+            <td>${data.humi?.toFixed(1) ?? 'N/A'}</td>
+            <td>${data.co2?.toFixed(1) ?? 'N/A'}</td>
+            <td>${data.light ?? 'N/A'}</td>
+            
+        `;
+        logTableBody.prepend(newRow);
+        if (logTableBody.rows.length > 20) logTableBody.deleteRow(20);
+    }
+    
+    function populateChart(chart, data) {
+        let filtered = data.filter(d => {
+            const t = new Date(d.log_time)
+            const GMTNow = t.getTime()+t.getTimezoneOffset()*60*1000
+            <!-- -->
+            //1. 5분마다 평균으로 잡고,for문으로 5개를 끊어 평균 구해 업데이트
+            //2. 그 전에 평균치 해서 던진다. 
+            
+            // begin co2_hist_arr
+            co2_hist_arr.push(d.co2);
+            if ( co2_hist_arr.length > co2_hist_arr_max ) {
+                co2_hist_arr.shift();
+            }
+            let sum = co2_hist_arr.reduce(
+                    (accumulator,current)=> accumulator + current,0
+            );
+            d.co2 = sum / co2_hist_arr.length;
+            // end co2_hist_arr
+            <!-- -->
+            
+            return GMTNow >= startOfToday && GMTNow <= Date.now();
+        });
+        chart.data.datasets[0].data = filtered.map(d => {
+            const t = new Date(d.log_time);
+            const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+            return { x: new Date(GMTNow), y: d.temp };
+        });
+        
+        chart.data.datasets[1].data = filtered.map(d => {
+            const t = new Date(d.log_time);
+            const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+            return { x: new Date(GMTNow), y: d.humi };
+        });
+        chart.data.datasets[2].data = filtered.map(d => {
+            const t = new Date(d.log_time);
+            const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+            return { x: new Date(GMTNow), y: d.co2 };
+        });
+              chart.data.datasets[3].data = filtered.map(d => {
+                  const t = new Date(d.log_time);
+                  const GMTNow = t.getTime() + t.getTimezoneOffset() * 60 * 1000;
+                  return { x: new Date(GMTNow), y: d.light };
+              });
+        chart.update();
+    }
+    async function loadChartData(endpoint, chart) {
+        try {
+            const res = await fetch(endpoint);
+            const data = await res.json();
+            console.log('불러온 데이터:', data);
+            populateChart(chart, data);
+        } catch (error) {
+            console.error(`${chart.options.plugins.title.text} 로딩 실패:`, error);
+        }
+    }
+    loadChartData('/api/today', chart);
+    
+    
+    
+    function updateLatestValues(data) {
+        if (tempElement) tempElement.innerHTML = data.temp !== null ? `${data.temp.toFixed(1)} ℃` : naText;
+        if (humidityElement) humidityElement.innerHTML = data.humi !== null ? `${data.humi.toFixed(1)} %` : naText;
+        if (co2Element) co2Element.innerHTML = data.co2 !== null ? `${data.co2} ppm` : naText;
+        if (lightElement) lightElement.innerHTML = data.light !== null ? `${data.light} lux` : naText;
+        if (statusTemp) statusTemp.innerHTML = data.cmd_temp_peltier !== null ? `${data.cmd_temp_peltier}` : naText;
+        if (statusHumi) statusHumi.innerHTML = data.cmd_fan !== null ? `${data.cmd_fan}` : naText;
+        if (statusCo2) statusCo2.innerHTML = data.cmd_co2_vent !== null ? `${data.cmd_co2_vent}` : naText;
+        if (statusLight) statusLight.innerHTML = data.cmd_light !== null ? `${data.cmd_light}` : naText;
+        document.getElementById('status-temp').style.color = data.cmd_temp_peltier != null ? "#28a745" : "#dc3545";
+        document.getElementById('status-humi').style.color = data.cmd_fan != null ? "#28a745" : "#dc3545";
+        document.getElementById('status-co2').style.color = data.cmd_co2_vent != null ? "#28a745" : "#dc3545";
+        document.getElementById('status-light').style.color = data.cmd_light != null ? "#28a745" : "#dc3545";
+    }
+    
+    socket.on('sensor_update', (data) => {
+        const now = new Date(data.timestamp);
+        updateLatestValues(data);
+        addLogRow(data);
+        if (now >= startOfToday) { 
+            const chartData = chart.data;
+            chartData.datasets[0].data.push({ x: now, y: data.temp });
+            chartData.datasets[1].data.push({ x: now, y: data.humi });
+            chartData.datasets[2].data.push({ x: now, y: data.co2 });
+            chartData.datasets[3].data.push({ x: now, y: data.light });
+            chart.update('active');
+        }
+    });
+    
+});
+</script>
+</body>
+</html>

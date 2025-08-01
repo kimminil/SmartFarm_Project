@@ -408,16 +408,25 @@ def access_insert():
     md.db.session.add(entry)
     md.db.session.commit();
     return jsonify({'message': 'Pass'})
-@bp.route('/position/insert',methods=['POST'])
-def posi_insert():
+
+
+@bp.route('/record_product_condition/insert')
+def product_insert():
     data = request.json
-    entry = md.record_access(
-        product_posi = data['product_posi'],
-        status = data['status']
+    entry = md.record_product_condition(
+            pos1 = data['pos1'],
+            pos2 = data['pos2'],
+            pos3 = data['pos3'],
+            pos4 = data['pos4'],
+            pos5 = data['pos5'],
+            pos6 = data['pos6'],
+            status = data['status']
         )
     md.db.session.add(entry)
-    md.db.session.commit();
-    return jsonify({'message': '위치 저장 성공'})
+    md.db.session.commit()
+    return jsonify({'message':'위치 저장 완료'})
+
+
 '''
 
 

@@ -30,12 +30,13 @@
             background-color: #000;
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            width: 100%;
+            width: 49%;
+            height: 100%;
             max-width: 900px;
             aspect-ratio: 4 / 3;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            
+            
             overflow: hidden;
         }
         .video-container img {
@@ -43,30 +44,45 @@
             height: 100%;
             object-fit: cover;
         }
-        .nav-link {
-            margin-top: 20px;
-            font-size: 1.2em;
-            color: #3498db;
+        .nav-button {
+            display: inline-block;
+            padding: 8px 14px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 7px;
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
         }
-        .nav-link:hover {
-            text-decoration: underline;
+        .nav-button:hover {
+            background-color: #2980b9;
         }
+        .video-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 20px; 
+        flex-wrap: wrap; 
+        width: 100%;
+        max-width: 1000px;
+    }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>실시간 PC 카메라</h1>
+        <h1>실시간 스마트팜 카메라</h1>
     </div>
-
-    <div class="video-container">
-        <img src="{{ url_for('video_feed') }}" alt="카메라 피드">
+    <div class="video-row">
+        <div class="video-container">
+            <img src="{{ url_for('video_feed') }}" alt="카메라 피드">
+        </div>
+        <div class="video-container">
+            <img src="{{ url_for('video_feed2') }}" alt="카메라 피드2">
+        </div>
     </div>
-    <div class="video-container">
-        <img src="{{ url_for('video_feed2') }}" alt="카메라 피드2">
+    <div style="margin-top: 30px;">
+       <button class="nav-button" onclick="goToIndex()">대시보드로 돌아가기</button>
     </div>
-   <button onclick="goToIndex()">대시보드로 돌아가기</button>
     <script>
     
       function goToIndex() {

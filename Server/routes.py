@@ -65,7 +65,7 @@ def check_cmd(cmd):
         return 0
     elif cmd=="NORMAL":
         return 1
-    else:
+    else: #Decrease
         return 2
     
 #테스트용 코드 구분
@@ -119,16 +119,16 @@ def pred_temp():
        return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
 
     sub = (
-        md.testData.query
-        .with_entities(md.testData.temp,md.testData.id)
-        .order_by(md.testData.id.desc())
+        md.record_data.query
+        .with_entities(md.record_data.temp,md.record_data.No)
+        .order_by(md.record_data.No.desc())
         .limit(30)
         
     ).subquery()
     
     rows = (
-        md.db.session.query(sub.c.temp,sub.c.id)
-        .order_by(sub.c.id)
+        md.db.session.query(sub.c.temp,sub.c.No)
+        .order_by(sub.c.No)
         .all()
         )
     
@@ -152,29 +152,25 @@ def pred_temp():
 
     # 8. 역변환
     y_pred = temp_scaler.inverse_transform(y_pred_scaled)
-    print(f"예측된 다음 시점 온도: {y_pred[0][0]:.2f} ℃")
-    return jsonify({
-        "temp" : f"현재 저장된 10개의 온도 값: {filtered_temps}",
-        "predict": f"{y_pred[0][0]:.2f}"
-        })
-
+    
+    return f"{y_pred[0][0]:.2f}"
 @bp.route('/test/predict/humi',methods=['POST'])
 def pred_humi():
     if humi_model is None or humi_scaler is None:
        return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
 
     sub = (
-        md.testData.query
-        .with_entities(md.testData.humi,md.testData.id)
-        .order_by(md.testData.id.desc())
+        md.record_data.query
+        .with_entities(md.record_data.humi,md.record_data.No)
+        .order_by(md.record_data.No.desc())
         .limit(30)
         
         
     ).subquery()
     
     rows = (
-        md.db.session.query(sub.c.humi,sub.c.id)
-        .order_by(sub.c.id)
+        md.db.session.query(sub.c.humi,sub.c.No)
+        .order_by(sub.c.No)
         .all()
         )
     
@@ -198,12 +194,10 @@ def pred_humi():
 
     # 8. 역변환
     y_pred = humi_scaler.inverse_transform(y_pred_scaled)
+    
+    return f"{y_pred[0][0]:.2f}"
 
-    return jsonify({
-        "humi" : f"현재 저장된 10개의 습도 값: {humis}",
-        "predict": f"{y_pred[0][0]:.2f}",
-
-        })
+        
 
 
 @bp.route('/test/predict/co2',methods=['POST'])
@@ -212,16 +206,16 @@ def pred_co2():
        return jsonify({"error": "모델 또는 스케일러가 로드되지 않았습니다."}), 500
 
     sub = (
-        md.testData.query
-        .with_entities(md.testData.co2,md.testData.id)
-        .order_by(md.testData.id.desc())
+        md.record_data.query
+        .with_entities(md.record_data.co2,md.record_data.No)
+        .order_by(md.record_data.No.desc())
         .limit(30)
         
     ).subquery()
     
     rows = (
-        md.db.session.query(sub.c.co2,sub.c.id)
-        #.order_by(sub.c.id)
+        md.db.session.query(sub.c.co2,sub.c.No)
+        .order_by(sub.c.No)
         .all()
         )
     co2s = [t for t,_ in rows]
@@ -244,12 +238,8 @@ def pred_co2():
 
     # 8. 역변환
     y_pred = co2_scaler.inverse_transform(y_pred_scaled)
-    print(f"예측된 다음 시점 co2: {y_pred[0][0]:.2f} ppm")
-    return jsonify({
-        "co2" : f"{co2s}",
-        "predict": f"{y_pred[0][0]:.2f}"
-        })
-
+    
+    return f"{y_pred[0][0]:.2f}"
 
     
 #테스트용 코드 구분
@@ -269,46 +259,53 @@ def data_insert():
     data = request.json
 
     #예측 데이터
-    temp_json = pred_temp()
-    humi_json = pred_humi()
-    co2_json = pred_co2()
+    temp_predict = pred_temp()
+    humi_predict = pred_humi()
+    co2_predict = pred_co2()
 
 
-    co2_data = co2_json.get_json()
-    temp_data = temp_json.get_json()
-    humi_data = humi_json.get_json()
-
-
-    temp_predict = float(temp_data.get("predict"))
-    humi_predict = float(humi_data.get("predict"))
-    co2_predict = float(co2_data.get("predict"))
+  
 
 
     #현재 데이터
     temp_current = float(data['temp'])
+    temp_current *= 0.9
     humi_current = float(data['humi'])
+    
     co2_current = float(data['co2'])
+    co2_current *= 0.2
     light_current = float(data['light'])
+    light_current *= 10.0
 
     #제어 명령 결정
 
 
     #가중 평균 보정
-    weighted_temp = 0.7 * temp_current + 0.3 * temp_predict
-    weighted_humi = 0.9 * humi_current + 0.1 * humi_predict
+    weighted_temp = 0.7 * temp_current + 0.3 * float(temp_predict)
+    weighted_humi = 0.9 * humi_current + 0.1 * float(humi_predict)
 
-    weighted_co2 = 0.7 * co2_current + 0.3 * co2_predict
-    TEMP_LOW = 12.0
-    TEMP_HIGH = 28.0
-
-    HUMI_LOW = 40.0
-    HUMI_HIGH = 70.0
-
-    LIGHT_LOW = 1.0
-    LIGHT_HIGH = 45.0
-
-    CO2_LOW = 2000
-    CO2_HIGH = 3500
+    weighted_co2 = 0.7 * co2_current + 0.3 * (float(co2_predict)*0.2)
+    
+    print(f"temp: {weighted_temp}")
+    print(f"humi: {weighted_humi}")
+    print(f"co2: {weighted_co2}")
+    
+    TEMP_LOW = 25.0
+    TEMP_HIGH = 27.0
+    if temp_current <=10 or temp_current >= 30:
+        return jsonify({'msg':'temp range error'})
+    HUMI_LOW = 50.0
+    HUMI_HIGH = 60.0
+    if humi_current <= 30 or humi_current >=100:
+        return jsonify({'msg':'humi range error'})
+    LIGHT_LOW = 530.0
+    LIGHT_HIGH =570.0
+    if light_current <=100 or light_current >= 1000:
+        return jsonify({'msg':'light range error'})
+    CO2_LOW = 530.0
+    CO2_HIGH = 550.0
+    if co2_current <= 100 or co2_current >=1000:
+        return jsonify({'msg':'co2 range error'})
     HYSTERESIS = 1.0
     if CMD_TEMP == "NORMAL":
         if temp_current >= TEMP_HIGH or weighted_temp >= TEMP_HIGH:
@@ -361,14 +358,14 @@ def data_insert():
         if light_current > (LIGHT_LOW + HYSTERESIS):
             CMD_LIGHT = "NORMAL"
 
-
+    
     entry = md.record_data(
 
         log_time = data['log_time'],
-        temp = data['temp'],
-        humi = data['humi'],
-        co2 = data['co2'],
-        light = data['light'],
+        temp = temp_current,
+        humi = humi_current,
+        co2 = co2_current,
+        light = light_current,
         w_height = data['w_height'],
         cmd_temp_peltier = CMD_TEMP,
         cmd_fan = CMD_HUMI,

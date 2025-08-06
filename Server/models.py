@@ -58,6 +58,16 @@ class record_product_condition(db.Model):
     pos2 = db.Column(db.VARCHAR(10),index=True)
     pos3 = db.Column(db.VARCHAR(10),index=True)
     pos4 = db.Column(db.VARCHAR(10),index=True)
-    pos5 = db.Column(db.VARCHAR(10),index=True)
-    pos6 = db.Column(db.VARCHAR(10),index=True)
+
     status = db.Column(db.VARCHAR(10),index=True)
+    
+    @classmethod
+    def update_data(cls,db_session,data_dict):        
+        entry = db_session.query(cls).get(1)
+        if entry:
+            for k,v in data_dict.items():
+               if hasattr(entry,k):
+                   setattr(entry,k,v)
+            db_session.commit()
+            return True
+        return False

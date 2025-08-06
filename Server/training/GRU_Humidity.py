@@ -60,7 +60,7 @@ X_train_final, X_val, y_train_final, y_val = train_test_split(
 
 # GRU 모델
 model = Sequential([
-      GRU(64, return_sequences=True, input_shape=(time_steps, 1)),
+     GRU(64, return_sequences=True, input_shape=(time_steps, 1)),
      GRU(32),
      Dense(64, activation='relu'),
      Dropout(0.3),

@@ -287,7 +287,7 @@ def background_task():
         while True:
             if sensor_flag:
                 try:
-                    select_db()
+                    socketio.emit('reload_signal')
                     print("▶ background tick")  
                 except Exception as e:
                     print("background_task error:", e)

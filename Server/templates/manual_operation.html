@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>스마트팜 수동조작 패널</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css">
+    <style>
+        body {
+            background: #f5f7fa;
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 920px;
+            margin: 30px auto;
+            background: #fff;
+            box-shadow: 0 4px 32px rgba(40,80,140,0.08);
+            border-radius: 16px;
+            padding: 36px 30px 28px 30px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #354768;
+            font-size: 2.1rem;
+        }
+        .panel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 28px;
+        }
+        .card {
+            background: #f6faff;
+            border-radius: 13px;
+            box-shadow: 0 2px 12px rgba(100,120,140,0.06);
+            padding: 28px 18px 20px 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .card i {
+            font-size: 2.3rem;
+            color: #3778fa;
+            margin-bottom: 12px;
+        }
+        .card h2 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 7px 0 22px 0;
+            color: #4660a1;
+        }
+        .btn-group {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 8px;
+        }
+        button {
+            font-size: 1rem;
+            padding: 11px 24px;
+            border-radius: 20px;
+            border: none;
+            background: #e4e9fa;
+            color: #3550a6;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+            outline: none;
+        }
+        button.active, button:active {
+            background: #3778fa;
+            color: #fff;
+        }
+        .status {
+            margin-top: 7px;
+            font-size: 0.95rem;
+            color: #888;
+            font-weight: 500;
+            min-height: 23px;
+        }
+        @media (max-width: 650px) {
+            .container {padding: 20px 6px;}
+            .panel-grid {grid-template-columns: 1fr;}
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>스마트팜 수동조작 패널</h1>
+        <div class="panel-grid">
+            <!-- 워터펌프(급수) -->
+            <div class="card" id="water-inlet">
+                <i class="ri-water-flash-line"></i>
+                <h2>워터펌프 (급수)</h2>
+                <div class="btn-group">
+                    <button onclick="setStatus('water-inlet', 'ON')" id="water-inlet-on">ON</button>
+                    <button onclick="setStatus('water-inlet', 'OFF')" id="water-inlet-off">OFF</button>
+                </div>
+                <div class="status" id="status-water-inlet"></div>
+            </div>
+            <!-- 워터펌프(배수) -->
+            <div class="card" id="water-drain">
+                <i class="ri-water-flash-fill"></i>
+                <h2>워터펌프 (배수)</h2>
+                <div class="btn-group">
+                    <button onclick="setStatus('water-drain', 'ON')" id="water-drain-on">ON</button>
+                    <button onclick="setStatus('water-drain', 'OFF')" id="water-drain-off">OFF</button>
+                </div>
+                <div class="status" id="status-water-drain"></div>
+            </div>
+            <!-- 펠티어+환기팬 -->
+            <div class="card" id="peltier">
+                <i class="ri-temp-cold-line"></i>
+                <h2>펠티어+환기팬</h2>
+                <div class="btn-group">
+                    <button onclick="setStatus('peltier', '냉각')" id="peltier-cool">냉각</button>
+                    <button onclick="setStatus('peltier', '히팅')" id="peltier-heat">히팅</button>
+                    <button onclick="setStatus('peltier', '노말')" id="peltier-normal">노말</button>
+                </div>
+                <div class="status" id="status-peltier"></div>
+            </div>
+            <!-- LED -->
+            <div class="card" id="led">
+                <i class="ri-lightbulb-flash-line"></i>
+                <h2>LED</h2>
+                <div class="btn-group">
+                    <button onclick="setStatus('led', 'ON')" id="led-on">ON</button>
+                    <button onclick="setStatus('led', 'OFF')" id="led-off">OFF</button>
+                </div>
+                <div class="status" id="status-led"></div>
+            </div>
+            <!-- 환기팬 -->
+            <div class="card" id="fan">
+                <i class="ri-windy-line"></i>
+                <h2>환기팬</h2>
+                <div class="btn-group">
+                    <button onclick="setStatus('fan', 'ON')" id="fan-on">ON</button>
+                    <button onclick="setStatus('fan', 'OFF')" id="fan-off">OFF</button>
+                </div>
+                <div class="status" id="status-fan"></div>
+            </div>
+            <!-- 도어 -->
+            <div class="card" id="door">
+                <i class="ri-door-open-line"></i>
+                <h2>도어</h2>
+                <div class="btn-group">
+                    <button onclick="setStatus('door', 'OPEN')" id="door-open">OPEN</button>
+                    <button onclick="setStatus('door', 'CLOSE')" id="door-close">CLOSE</button>
+                </div>
+                <div class="status" id="status-door"></div>
+            </div>
+        </div>
+        <div style="text-align:center; margin-top:28px;">
+        
+        <button onclick="goToIndex()" style="
+            font-size:1.1rem; 
+            padding: 12px 38px; 
+            border-radius: 24px; 
+            border:none; 
+            background:#ebedf8; 
+            color:#4460a1; 
+            font-weight:600;
+            box-shadow:0 2px 10px rgba(100,120,140,0.08);
+            cursor:pointer;
+            transition: background 0.16s, color 0.16s;
+        " onmouseover="this.style.background='#3778fa'; this.style.color='#fff';"
+          onmouseout="this.style.background='#ebedf8'; this.style.color='#4460a1';"
+        >
+            ← 되돌아가기
+        </button>
+    </div>
+    </div>
+    <script>
+        
+        function setStatus(id, status) {
+           
+            document.getElementById('status-' + id).textContent = "상태: " + status;
+           
+            let card = document.getElementById(id);
+            let buttons = card.querySelectorAll('button');
+            buttons.forEach(btn => btn.classList.remove('active'));
+          
+            let btnId = id + '-' + status.toLowerCase();
+            let btn = document.getElementById(btnId);
+            if(btn) btn.classList.add('active');
+            sendDeviceCommand(id,status)
+          
+        }
+        function sendDeviceCommand(device, command){
+            fetch('/api/control',{
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ device: device, command: command })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert('제어 명령이 전송');
+            })
+            .catch(e=>alert('오류!'));
+        }
+         function goToIndex() {
+           fetch('/api/control_close').then(() => {
+             window.location.href = '/';
+           });
+         }
+         window.addEventListener('beforeunload', function() {
+           fetch('/api/control_close');
+         });
+    </script>
+</body>
+</html>

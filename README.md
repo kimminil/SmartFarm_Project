@@ -1,4 +1,4 @@
-![시연영상보기](https://github.com/user-attachments/assets/1bbe0277-9e18-40cd-ba83-ccb4064b52f9)
+<img src="demo.gif" width="800">
 <img width="1076" height="596" alt="image" src="https://github.com/user-attachments/assets/eff8e2cf-16e8-401e-a160-0b32fd9f27f4" />
 <img width="1102" height="595" alt="image" src="https://github.com/user-attachments/assets/7cdc7c29-44cf-4008-ae0e-65fca283f429" />
 <img width="1088" height="595" alt="image" src="https://github.com/user-attachments/assets/7a1ed615-ae18-4b72-8cd6-faccba378576" />

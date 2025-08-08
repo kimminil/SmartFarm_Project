@@ -1,0 +1,46 @@
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:20:12:__io_putchar	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:52:6:vprint	3
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:84:6:my_printf	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:122:6:delay	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:129:6:Set_Pin_Output	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:138:6:Set_Pin_Input	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:147:6:DHT11_Start	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:160:9:DHT11_Check_Response	6
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:183:9:DHT11_Read	8
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:215:9:DHT11_Sensor_Test	6
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:254:7:DHT11_Run_RH	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:259:7:DHT11_Run_TEMP	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:276:9:check_light	8
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:306:7:read_light	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:309:7:read_light_lux	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:327:7:get_co2_step	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:347:9:check_co2	6
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:371:7:read_co2	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:408:7:isWaterDetected1	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:414:7:isWaterDetected2	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:435:6:parse_fixed_csv	10
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:469:6:fan_on	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:475:6:fan_off	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:499:6:Water_P1_Start	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:503:6:Water_P2_Start	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:508:6:Water_P1_Stop	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:512:6:Water_P2_Stop	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:529:6:light_on	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:538:6:test_led_mode	2
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:551:10:map	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:576:6:process_commands	16
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:629:6:manual_process	13
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:704:6:Peltier_Cooling	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:715:6:Peltier_Heating	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:724:6:Peltier_Normal	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:781:6:door_open	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:788:6:door_close	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:796:6:door_stop	1
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:811:9:update_door_state	14
+C:/Users/Administrator/Desktop/SmartFarm/prj_smartfarm_final (2)/Core/My_Lib/my_library.h:837:6:handle_door_action	4
+../Core/Src/main.c:167:5:main	10
+../Core/Src/main.c:330:6:SystemClock_Config	3
+../Core/Src/main.c:376:13:MX_NVIC_Init	1
+../Core/Src/main.c:384:6:HAL_UART_RxCpltCallback	7
+../Core/Src/main.c:435:6:HAL_TIM_PeriodElapsedCallback	13
+../Core/Src/main.c:516:6:Error_Handler	1

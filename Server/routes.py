@@ -284,14 +284,14 @@ def data_insert():
     weighted_temp = 0.7 * temp_current + 0.3 * float(temp_predict)
     weighted_humi = 0.9 * humi_current + 0.1 * float(humi_predict)
 
-    weighted_co2 = 0.7 * co2_current + 0.3 * (float(co2_predict)*0.2)
+    weighted_co2 = 0.7 * co2_current + 0.3 * (float(co2_predict))
     
     print(f"temp: {weighted_temp}")
     print(f"humi: {weighted_humi}")
     print(f"co2: {weighted_co2}")
     
     TEMP_LOW = 25.0
-    TEMP_HIGH = 27.0
+    TEMP_HIGH = 28.0
     if temp_current <=10 or temp_current >= 30:
         return jsonify({'msg':'temp range error'})
     HUMI_LOW = 50.0
@@ -303,7 +303,7 @@ def data_insert():
     if light_current <=100 or light_current >= 1000:
         return jsonify({'msg':'light range error'})
     CO2_LOW = 530.0
-    CO2_HIGH = 550.0
+    CO2_HIGH = 560.0
     if co2_current <= 100 or co2_current >=1000:
         return jsonify({'msg':'co2 range error'})
     HYSTERESIS = 1.0

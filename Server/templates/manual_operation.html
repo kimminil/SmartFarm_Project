@@ -26,11 +26,14 @@
             font-size: 2.1rem;
         }
         .panel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            display: flex;
+            flex-wrap: nowrap;
             gap: 28px;
+            overflow-x: auto;
+            padding-bottom: 10px;
         }
         .card {
+            flex: 0 0 240px;
             background: #f6faff;
             border-radius: 13px;
             box-shadow: 0 2px 12px rgba(100,120,140,0.06);
@@ -80,7 +83,7 @@
         }
         @media (max-width: 650px) {
             .container {padding: 20px 6px;}
-            .panel-grid {grid-template-columns: 1fr;}
+            .panel-grid {flex-wrap: wrap;}
         }
     </style>
 </head>
@@ -88,30 +91,13 @@
     <div class="container">
         <h1>스마트팜 수동조작 패널</h1>
         <div class="panel-grid">
-            <!-- 워터펌프(급수) -->
-            <div class="card" id="water-inlet">
-                <i class="ri-water-flash-line"></i>
-                <h2>워터펌프 (급수)</h2>
-                <div class="btn-group">
-                    <button onclick="setStatus('water-inlet', 'ON')" id="water-inlet-on">ON</button>
-                    <button onclick="setStatus('water-inlet', 'OFF')" id="water-inlet-off">OFF</button>
-                </div>
-                <div class="status" id="status-water-inlet"></div>
-            </div>
-            <!-- 워터펌프(배수) -->
-            <div class="card" id="water-drain">
-                <i class="ri-water-flash-fill"></i>
-                <h2>워터펌프 (배수)</h2>
-                <div class="btn-group">
-                    <button onclick="setStatus('water-drain', 'ON')" id="water-drain-on">ON</button>
-                    <button onclick="setStatus('water-drain', 'OFF')" id="water-drain-off">OFF</button>
-                </div>
-                <div class="status" id="status-water-drain"></div>
-            </div>
+            
+           
+
             <!-- 펠티어+환기팬 -->
             <div class="card" id="peltier">
                 <i class="ri-temp-cold-line"></i>
-                <h2>펠티어+환기팬</h2>
+                <h2>펠티어</h2>
                 <div class="btn-group">
                     <button onclick="setStatus('peltier', '냉각')" id="peltier-cool">냉각</button>
                     <button onclick="setStatus('peltier', '히팅')" id="peltier-heat">히팅</button>
@@ -119,16 +105,7 @@
                 </div>
                 <div class="status" id="status-peltier"></div>
             </div>
-            <!-- LED -->
-            <div class="card" id="led">
-                <i class="ri-lightbulb-flash-line"></i>
-                <h2>LED</h2>
-                <div class="btn-group">
-                    <button onclick="setStatus('led', 'ON')" id="led-on">ON</button>
-                    <button onclick="setStatus('led', 'OFF')" id="led-off">OFF</button>
-                </div>
-                <div class="status" id="status-led"></div>
-            </div>
+
             <!-- 환기팬 -->
             <div class="card" id="fan">
                 <i class="ri-windy-line"></i>
@@ -139,6 +116,7 @@
                 </div>
                 <div class="status" id="status-fan"></div>
             </div>
+
             <!-- 도어 -->
             <div class="card" id="door">
                 <i class="ri-door-open-line"></i>
@@ -149,45 +127,45 @@
                 </div>
                 <div class="status" id="status-door"></div>
             </div>
+
         </div>
+
         <div style="text-align:center; margin-top:28px;">
-        
-        <button onclick="goToIndex()" style="
-            font-size:1.1rem; 
-            padding: 12px 38px; 
-            border-radius: 24px; 
-            border:none; 
-            background:#ebedf8; 
-            color:#4460a1; 
-            font-weight:600;
-            box-shadow:0 2px 10px rgba(100,120,140,0.08);
-            cursor:pointer;
-            transition: background 0.16s, color 0.16s;
-        " onmouseover="this.style.background='#3778fa'; this.style.color='#fff';"
-          onmouseout="this.style.background='#ebedf8'; this.style.color='#4460a1';"
-        >
-            ← 되돌아가기
-        </button>
+            <button onclick="goToIndex()" style="
+                font-size:1.1rem; 
+                padding: 12px 38px; 
+                border-radius: 24px; 
+                border:none; 
+                background:#ebedf8; 
+                color:#4460a1; 
+                font-weight:600;
+                box-shadow:0 2px 10px rgba(100,120,140,0.08);
+                cursor:pointer;
+                transition: background 0.16s, color 0.16s;
+            " onmouseover="this.style.background='#3778fa'; this.style.color='#fff';"
+              onmouseout="this.style.background='#ebedf8'; this.style.color='#4460a1';">
+                ← 되돌아가기
+            </button>
+        </div>
     </div>
-    </div>
+
     <script>
-        
         function setStatus(id, status) {
-           
             document.getElementById('status-' + id).textContent = "상태: " + status;
-           
+
             let card = document.getElementById(id);
             let buttons = card.querySelectorAll('button');
             buttons.forEach(btn => btn.classList.remove('active'));
-          
+
             let btnId = id + '-' + status.toLowerCase();
             let btn = document.getElementById(btnId);
             if(btn) btn.classList.add('active');
-            sendDeviceCommand(id,status)
-          
+
+            sendDeviceCommand(id, status);
         }
+
         function sendDeviceCommand(device, command){
-            fetch('/api/control',{
+            fetch('/api/control', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ device: device, command: command })
@@ -196,16 +174,18 @@
             .then(data => {
                 alert('제어 명령이 전송');
             })
-            .catch(e=>alert('오류!'));
+            .catch(e => alert('오류!'));
         }
-         function goToIndex() {
-           fetch('/api/control_close').then(() => {
-             window.location.href = '/';
-           });
-         }
-         window.addEventListener('beforeunload', function() {
-           fetch('/api/control_close');
-         });
+
+        function goToIndex() {
+            fetch('/api/control_close').then(() => {
+                window.location.href = '/';
+            });
+        }
+
+        window.addEventListener('beforeunload', function() {
+            fetch('/api/control_close');
+        });
     </script>
 </body>
 </html>

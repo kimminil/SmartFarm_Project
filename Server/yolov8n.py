@@ -50,8 +50,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(UPLOAD_FOLDER_2, exist_ok=True)
 
 
-rpi_url = "http://192.168.1.110:5050"
-rpi2_url = "http://192.168.1.80:5050"
+rpi_url = "http://192.168.1.108:5050"
+rpi2_url = "http://192.168.1.102:5050"
 
 CMD_TEMP = "NORMAL"
 CMD_HUMI = "NORMAL"
@@ -118,10 +118,9 @@ class_names = ["빈통", "생장중", "수확"]
 
 @app.route('/upload', methods=['POST'])
 def upload_record():
-    pos = {1:350,2:610}
+    pos = {1:340,2:640}
     pos_dict = {f"pos{k}":0 for k in range(1,3)}
     best_for_pos1 = {i:{'conf':0, 'class_id':None,'box':None} for i in pos}
-    
     if camera_flag:
         img_bytes = request.files['image'].read()
         nparr = np.frombuffer(img_bytes, np.uint8)
@@ -138,11 +137,10 @@ def upload_record():
         y1 = max(center_y - crop_h // 2, 0)
         y2 = min(center_y + crop_h // 2, h)
         crop = img[y1:y2, x1:x2]
-
         zoomed = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
         if YOLO_MODE:
             results = yolo_model(zoomed,conf=0.35,iou=0.3)
-            
+            #results = yolo_model(img,conf=0.35,iou=0.3)
             img_pil = Image.fromarray(cv2.cvtColor(zoomed, cv2.COLOR_BGR2RGB))
             draw = ImageDraw.Draw(img_pil)
             font = ImageFont.truetype(r"C:\Windows\Fonts\malgun.ttf", 30)  
@@ -157,18 +155,13 @@ def upload_record():
                         if pos[j] >= center_x - 15 and pos[j]<=center_x +15:
                             if conf>best_for_pos1[j]['conf']:
                                 best_for_pos1[j] = {'conf':conf, 'class_id':class_id,'box':(x1,y1,x2,y2)}
-                    
-
                     label = class_names[class_id]
                     draw.rectangle([x1, y1, x2, y2], outline=(0,255,0), width=3)
                     draw.text((x1, y1-35), f"{label} {center_x} {conf:.2f}", font=font, fill=(0,255,0,0))
-            
             zoomed = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)
             frame[0] = zoomed
-
         else:
             frame[0] = zoomed
-
         return 'OK'
     else:
         return 'error'
@@ -183,9 +176,22 @@ def upload_record2():
         nparr = np.frombuffer(img_bytes, np.uint8)
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         img = cv2.flip(img, -1)
-
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = cv2.flip(img, -1)
+        h, w = img.shape[:2]
+        crop_ratio = np.sqrt(0.55)  # sqrt(0.2) = 대략 44.7%
+        crop_w = int(w * crop_ratio)
+        crop_h = int(h * crop_ratio)
+        center_x = w // 2
+        center_y = h // 2
+        x1 = max(center_x - crop_w // 2, 0)
+        x2 = min(center_x + crop_w // 2, w)
+        y1 = max(center_y - crop_h // 2, 0)
+        y2 = min(center_y + crop_h // 2, h)
+        crop = img[y1:y2, x1:x2]
+        zoomed = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
         if YOLO_MODE:
-            results = yolo_model(img,conf=0.45,iou=0.3)
+            results = yolo_model(zoomed,conf=0.45,iou=0.3)
             
             img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
             draw = ImageDraw.Draw(img_pil)
@@ -442,17 +448,7 @@ def send_control():
             else:
                 data['command'] = 0
         else:
-            
-            if data['device'] == 'water-inlet':
-                data['device'] = 0
-            elif data['device'] == 'water-drain':
-                data['device'] = 1
-                
-            elif data['device'] == 'led':
-                data['device'] = 3
-            else:
-                data['device'] = 4
-            
+            data['device'] = 4
             if data['command'] == 'ON':
                 data['command'] = 1
             else:

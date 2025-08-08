@@ -15,7 +15,7 @@
 <img width="1082" height="595" alt="image" src="https://github.com/user-attachments/assets/6314c431-b231-4742-90a5-ee3d2c7b1c97" />
 <img width="1081" height="591" alt="image" src="https://github.com/user-attachments/assets/ed79cced-ee3d-4ff0-8b30-2da7f948a944" />
 <img width="1076" height="579" alt="image" src="https://github.com/user-attachments/assets/ae1209a3-cfeb-4cbc-990f-ae774ac1229c" />
-![demo+(1)](https://github.com/user-attachments/assets/1bbe0277-9e18-40cd-ba83-ccb4064b52f9)
+![시연영상보기](https://github.com/user-attachments/assets/1bbe0277-9e18-40cd-ba83-ccb4064b52f9)
 
 <img width="1067" height="568" alt="image" src="https://github.com/user-attachments/assets/b8086458-5992-4657-861b-4aff13b2f1b1" />
 

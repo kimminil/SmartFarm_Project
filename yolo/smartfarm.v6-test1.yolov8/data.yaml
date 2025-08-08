@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['0', '1', '2']
+
+roboflow:
+  workspace: test-ua6ez
+  project: smartfarm-ytvsq
+  version: 6
+  license: MIT
+  url: https://universe.roboflow.com/test-ua6ez/smartfarm-ytvsq/dataset/6

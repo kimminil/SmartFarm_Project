@@ -7,6 +7,7 @@ pymysql==1.1.0
 flask_sqlalchemy==3.1.1
 flask_cors==6.0.1
 
+
 # MQTT 통신
 paho-mqtt==1.6.1
 
@@ -31,3 +32,7 @@ scikit-learn==1.4.2  # 전처리, 분할 등
 # 기타 (선택적 로깅/환경관리)
 python-dotenv==1.0.1
 matplotlib==3.8.4
+
+# 객체탐지
+pillow==11.3.0
+ultralytics==8.2.21
